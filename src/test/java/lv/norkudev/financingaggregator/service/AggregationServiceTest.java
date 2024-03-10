@@ -20,6 +20,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 
 @SpringBootTest
@@ -103,6 +104,51 @@ public class AggregationServiceTest {
 
         StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
                 .expectNext(List.of(createExpectedFastBankOffer(), createExpectedSolidBankOffer()))
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testOneOnlyResponds() {
+        solidbank.enqueue(new MockResponse().setResponseCode(400));
+
+        fastbank.enqueue(new MockResponse().setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody("{\n" +
+                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
+                        "\"status\": \"DRAFT\",\n" +
+                        "\"offer\": null\n" +
+                        "}")
+        );
+        fastbank.enqueue(new MockResponse().setResponseCode(200)
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setBody("{\n" +
+                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
+                        "\"status\": \"PROCESSED\",\n" +
+                        "\"offer\": {\n" +
+                        "\"monthlyPaymentAmount\": 1750.00,\n" +
+                        "\"totalRepaymentAmount\": 5250.00,\n" +
+                        "\"numberOfPayments\": 3,\n" +
+                        "\"annualPercentageRate\": 10.20,\n" +
+                        "\"firstRepaymentDate\": \"2024-04-08\"\n" +
+                        "}\n" +
+                        "}")
+        );
+
+        StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
+                .expectNext(List.of(createExpectedFastBankOffer()))
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testNoneResponds() {
+        solidbank.enqueue(new MockResponse().setResponseCode(400));
+
+        fastbank.enqueue(new MockResponse().setResponseCode(400));
+
+        StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
+                .expectNext(Collections.emptyList())
                 .expectComplete()
                 .verify();
     }

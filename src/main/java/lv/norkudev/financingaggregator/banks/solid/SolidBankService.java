@@ -11,8 +11,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -44,7 +42,7 @@ public class SolidBankService {
                 .flatMap(application -> getLatestOffer(UUID.fromString(application.getId())))
                 .filter(application -> application.getOffer() != null)
                 .map(mapper::toApplicationOffer)
-                .onErrorResume(Exception.class, ex -> Mono.justOrEmpty(Optional.empty()));
+                .onErrorResume(throwable -> Mono.empty());
     }
 
     private Mono<Application> getLatestOffer(UUID id) {
