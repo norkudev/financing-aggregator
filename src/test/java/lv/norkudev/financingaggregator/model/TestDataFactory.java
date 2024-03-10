@@ -4,6 +4,7 @@ import lv.norkudev.financingaggregator.banks.solid.ApplicationRequest;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Component
 public class TestDataFactory {
@@ -19,6 +20,28 @@ public class TestDataFactory {
                 ApplicationRequest.MaritalStatusEnum.SINGLE,
                 true,
                 BigDecimal.valueOf(5000)
+        );
+    }
+
+    public ApplicationOffer createExpectedFastBankOffer() {
+        return new ApplicationOffer(
+                "FAST_BANK",
+                BigDecimal.valueOf(1750.00).setScale(2, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(5250.00).setScale(2, RoundingMode.HALF_UP),
+                3,
+                BigDecimal.valueOf(10.20).setScale(2, RoundingMode.HALF_UP),
+                "2024-04-08"
+        );
+    }
+
+    public ApplicationOffer createExpectedSolidBankOffer() {
+        return new ApplicationOffer(
+                "SOLID_BANK",
+                BigDecimal.valueOf(883.33),
+                BigDecimal.valueOf(5300.00).setScale(2, RoundingMode.HALF_UP),
+                6,
+                BigDecimal.valueOf(10.11),
+                "2024-04-08"
         );
     }
 

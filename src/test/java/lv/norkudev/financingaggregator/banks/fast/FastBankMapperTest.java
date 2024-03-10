@@ -2,6 +2,7 @@ package lv.norkudev.financingaggregator.banks.fast;
 
 import lv.norkudev.financingaggregator.banks.solid.ApplicationRequest;
 import lv.norkudev.financingaggregator.model.SubmitApplication;
+import lv.norkudev.financingaggregator.model.TestDataFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,32 +10,32 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = FastBankMapperImpl.class)
+@ContextConfiguration(classes = {FastBankMapperImpl.class, TestDataFactory.class})
 public class FastBankMapperTest {
 
     @Autowired
     private FastBankMapper fastBankMapper;
 
+    @Autowired
+    private TestDataFactory testDataFactory;
+
     @Test
     public void testApplicationOfferMapping() {
         var applicationOffer = fastBankMapper.toApplicationOffer(createApplication());
         assertThat(applicationOffer).isNotNull();
-        assertThat(applicationOffer.api()).isEqualTo("FAST_BANK");
-        assertThat(applicationOffer.annualPercentageRate()).isEqualTo(BigDecimal.valueOf(10.26));
-        assertThat(applicationOffer.numberOfPayments()).isEqualTo(12);
-        assertThat(applicationOffer.firstRepaymentDate()).isEqualTo("2024-04-08");
-        assertThat(applicationOffer.totalRepaymentAmount()).isEqualTo(BigDecimal.valueOf(6300.00));
-        assertThat(applicationOffer.monthlyPaymentAmount()).isEqualTo(BigDecimal.valueOf(525.00));
+        assertThat(applicationOffer).usingRecursiveComparison()
+                .isEqualTo(testDataFactory.createExpectedFastBankOffer());
     }
 
     @Test
     public void testApplicationRequestMapping() {
-        var applicationRequest = fastBankMapper.toApplicationRequest(createSubmitApplication());
+        var applicationRequest = fastBankMapper.toApplicationRequest(testDataFactory.createSubmitApplication());
         assertThat(applicationRequest).isNotNull();
         assertThat(applicationRequest.getPhoneNumber()).isEqualTo("+37122222222");
         assertThat(applicationRequest.getEmail()).isEqualTo("test@test.com");
@@ -55,26 +56,12 @@ public class FastBankMapperTest {
 
     private Offer createOffer() {
         var offer = new Offer();
-        offer.setAnnualPercentageRate(BigDecimal.valueOf(10.26));
-        offer.setNumberOfPayments(12);
+        offer.setAnnualPercentageRate(BigDecimal.valueOf(10.20).setScale(2, RoundingMode.HALF_UP));
+        offer.setNumberOfPayments(3);
         offer.setFirstRepaymentDate("2024-04-08");
-        offer.setTotalRepaymentAmount(BigDecimal.valueOf(6300.00));
-        offer.setMonthlyPaymentAmount(BigDecimal.valueOf(525.00));
+        offer.setTotalRepaymentAmount(BigDecimal.valueOf(5250.00).setScale(2, RoundingMode.HALF_UP));
+        offer.setMonthlyPaymentAmount(BigDecimal.valueOf(1750.00).setScale(2, RoundingMode.HALF_UP));
         return offer;
-    }
-
-    private SubmitApplication createSubmitApplication() {
-        return new SubmitApplication(
-                "+37122222222",
-                "test@test.com",
-                BigDecimal.valueOf(1000),
-                BigDecimal.valueOf(300),
-                BigDecimal.valueOf(0),
-                1,
-                ApplicationRequest.MaritalStatusEnum.SINGLE,
-                true,
-                BigDecimal.valueOf(5000)
-        );
     }
 
 }

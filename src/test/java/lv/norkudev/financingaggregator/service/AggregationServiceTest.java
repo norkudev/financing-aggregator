@@ -5,6 +5,7 @@ import lv.norkudev.financingaggregator.banks.solid.ApplicationRequest;
 import lv.norkudev.financingaggregator.banks.solid.SolidBankService;
 import lv.norkudev.financingaggregator.model.ApplicationOffer;
 import lv.norkudev.financingaggregator.model.SubmitApplication;
+import lv.norkudev.financingaggregator.model.TestDataFactory;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -35,6 +36,8 @@ public class AggregationServiceTest {
     private SolidBankService solidBankService;
     @Autowired
     private FastBankService fastBankService;
+    @Autowired
+    private TestDataFactory testDataFactory;
 
     @BeforeEach
     void setUp() {
@@ -102,8 +105,8 @@ public class AggregationServiceTest {
                         "}")
         );
 
-        StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
-                .expectNext(List.of(createExpectedFastBankOffer(), createExpectedSolidBankOffer()))
+        StepVerifier.create(aggregationService.submitApplication(testDataFactory.createSubmitApplication()))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer(), testDataFactory.createExpectedSolidBankOffer()))
                 .expectComplete()
                 .verify();
     }
@@ -135,8 +138,8 @@ public class AggregationServiceTest {
                         "}")
         );
 
-        StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
-                .expectNext(List.of(createExpectedFastBankOffer()))
+        StepVerifier.create(aggregationService.submitApplication(testDataFactory.createSubmitApplication()))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer()))
                 .expectComplete()
                 .verify();
     }
@@ -144,48 +147,11 @@ public class AggregationServiceTest {
     @Test
     public void testNoneResponds() {
         solidbank.enqueue(new MockResponse().setResponseCode(400));
-
         fastbank.enqueue(new MockResponse().setResponseCode(400));
 
-        StepVerifier.create(aggregationService.submitApplication(createSubmitApplication()))
+        StepVerifier.create(aggregationService.submitApplication(testDataFactory.createSubmitApplication()))
                 .expectNext(Collections.emptyList())
                 .expectComplete()
                 .verify();
-    }
-
-    private ApplicationOffer createExpectedFastBankOffer() {
-        return new ApplicationOffer(
-                "FAST_BANK",
-                BigDecimal.valueOf(1750.00).setScale(2, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(5250.00).setScale(2, RoundingMode.HALF_UP),
-                3,
-                BigDecimal.valueOf(10.20).setScale(2, RoundingMode.HALF_UP),
-                "2024-04-08"
-        );
-    }
-
-    private ApplicationOffer createExpectedSolidBankOffer() {
-        return new ApplicationOffer(
-                "SOLID_BANK",
-                BigDecimal.valueOf(883.33),
-                BigDecimal.valueOf(5300.00).setScale(2, RoundingMode.HALF_UP),
-                6,
-                BigDecimal.valueOf(10.11),
-                "2024-04-08"
-        );
-    }
-
-    private SubmitApplication createSubmitApplication() {
-        return new SubmitApplication(
-                "+37122222222",
-                "test@test.com",
-                BigDecimal.valueOf(1000),
-                BigDecimal.valueOf(300),
-                BigDecimal.valueOf(0),
-                1,
-                ApplicationRequest.MaritalStatusEnum.SINGLE,
-                true,
-                BigDecimal.valueOf(5000)
-        );
     }
 }
