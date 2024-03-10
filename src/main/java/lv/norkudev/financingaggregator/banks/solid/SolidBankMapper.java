@@ -1,12 +1,13 @@
 package lv.norkudev.financingaggregator.banks.solid;
 
+import lv.norkudev.financingaggregator.banks.BaseBankMapper;
 import lv.norkudev.financingaggregator.model.ApplicationOffer;
 import lv.norkudev.financingaggregator.model.SubmitApplication;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface SolidBankMapper {
+public interface SolidBankMapper extends BaseBankMapper<Application, ApplicationRequest> {
 
     String SOLID_BANK = "SOLID_BANK";
 

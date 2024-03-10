@@ -1,12 +1,12 @@
 package lv.norkudev.financingaggregator.banks.solid;
 
 import lombok.RequiredArgsConstructor;
+import lv.norkudev.financingaggregator.banks.BaseBankMapper;
+import lv.norkudev.financingaggregator.banks.BaseBankService;
 import lv.norkudev.financingaggregator.model.ApplicationOffer;
 import lv.norkudev.financingaggregator.model.SubmitApplication;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -15,49 +15,48 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class SolidBankService {
+public class SolidBankService extends BaseBankService<Application, ApplicationRequest> {
 
     private final SolidBankMapper mapper;
 
     private WebClient solidBankClient;
-    private int retryAfterSeconds;
-
-    @Value("${banks.retry-after-seconds:5}")
-    public void setRetryAfterSeconds(int retryAfterSeconds) {
-        this.retryAfterSeconds = retryAfterSeconds;
-    }
 
     @Autowired
     public void setSolidBankClient(WebClient solidBankClient) {
         this.solidBankClient = solidBankClient;
     }
 
+    @Override
     public Mono<ApplicationOffer> submitApplication(SubmitApplication submitApplication) {
-        var request = mapper.toApplicationRequest(submitApplication);
-        return solidBankClient.post()
-                .uri("/applications")
-                .body(BodyInserters.fromValue(request))
-                .retrieve()
+        return retrieve(submitApplication)
                 .bodyToMono(Application.class)
                 .flatMap(application -> getLatestOffer(UUID.fromString(application.getId())))
                 .filter(application -> application.getOffer() != null)
-                .map(mapper::toApplicationOffer)
-                .onErrorResume(throwable -> Mono.empty());
+                .map(mapper::toApplicationOffer);
+
     }
 
-    private Mono<Application> getLatestOffer(UUID id) {
-        return solidBankClient.get()
-                .uri("/applications/" + id)
-                .retrieve()
+    @Override
+    protected Mono<Application> getLatestOffer(UUID id) {
+        return retrieve(id)
                 .bodyToMono(Application.class)
                 .flatMap(application -> {
                     if (application.getStatus() == Application.StatusEnum.PROCESSED) {
                         return Mono.just(application);
-                    } else  {
+                    } else {
                         return Mono.delay(Duration.ofSeconds(retryAfterSeconds))
                                 .then(getLatestOffer(UUID.fromString(application.getId())));
                     }
                 });
     }
 
+    @Override
+    protected WebClient getClient() {
+        return solidBankClient;
+    }
+
+    @Override
+    protected BaseBankMapper<Application, ApplicationRequest> getMapper() {
+        return mapper;
+    }
 }

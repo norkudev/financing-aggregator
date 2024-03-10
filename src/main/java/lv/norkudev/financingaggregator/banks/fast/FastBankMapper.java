@@ -1,12 +1,13 @@
 package lv.norkudev.financingaggregator.banks.fast;
 
+import lv.norkudev.financingaggregator.banks.BaseBankMapper;
 import lv.norkudev.financingaggregator.model.ApplicationOffer;
 import lv.norkudev.financingaggregator.model.SubmitApplication;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface FastBankMapper {
+public interface FastBankMapper  extends BaseBankMapper<Application, ApplicationRequest> {
 
     String FAST_BANK = "FAST_BANK";
 
