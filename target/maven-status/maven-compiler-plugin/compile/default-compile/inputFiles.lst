@@ -1,0 +1,14 @@
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/AggregatorApplication.java
+/workspaces/financing-aggregator/target/generated-sources/solidbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/solid/Offer.java
+/workspaces/financing-aggregator/target/generated-sources/solidbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/solid/ApplicationRequest.java
+/workspaces/financing-aggregator/target/generated-sources/fastbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/fast/ApplicationRequest.java
+/workspaces/financing-aggregator/target/generated-sources/solidbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/solid/Application.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/banks/fast/FastBankService.java
+/workspaces/financing-aggregator/target/generated-sources/fastbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/fast/Offer.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/banks/fast/FastBankInterface.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/banks/fast/FastBankMapper.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/model/SubmitApplication.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/service/AggregationService.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/banks/solid/SolidBankInterface.java
+/workspaces/financing-aggregator/src/main/java/lv/norkudev/financingaggregator/controller/ApplicationController.java
+/workspaces/financing-aggregator/target/generated-sources/fastbank/src/gen/java/main/lv/norkudev/financingaggregator/banks/fast/Application.java

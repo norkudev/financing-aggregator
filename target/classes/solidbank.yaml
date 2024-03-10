@@ -1,0 +1,126 @@
+openapi: 3.0.0
+info:
+  title: SolidBank financing application API
+  version: v1
+  description: SoldBank API financing application and offer retrieval API
+servers:
+  - url: https://shop.uat.klix.app:443/api/SolidBank
+paths:
+  /applications:
+    post:
+      summary: Submit financing application
+      operationId: addApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationRequest'
+            example:
+              phone: '+37126000000'
+              email: john.doe@klix.app
+              monthlyIncome: 1000
+              monthlyExpenses: 300
+              maritalStatus: SINGLE
+              agreeToBeScored: true
+              amount: 150
+      responses:
+        '201':
+          $ref: '#/components/responses/Application'
+        '400':
+          $ref: '#/components/responses/400'
+  '/applications/{id}':
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Find previously created application
+      description: Returns application with offer if already available
+      operationId: getApplicationById
+      responses:
+        '200':
+          $ref: '#/components/responses/Application'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+components:
+  parameters:
+    id:
+      name: id
+      required: true
+      in: path
+      description: Application ID (UUID)
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '400':
+      description: Bad request
+    '404':
+      description: Application not found
+    Application:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Application'
+  schemas:
+    ApplicationRequest:
+      required:
+        - phone
+        - email
+        - monthlyIncome
+        - monthlyExpenses
+        - maritalStatus
+        - agreeToBeScored
+        - amount
+      properties:
+        phone:
+          type: string
+          pattern: "\\+[0-9]{11,15}"
+        email:
+          type: string
+        monthlyIncome:
+          type: number
+        monthlyExpenses:
+          type: number
+        maritalStatus:
+          type: string
+          enum:
+            - SINGLE
+            - MARRIED
+            - DIVORCED
+            - COHABITING
+        agreeToBeScored:
+          type: boolean
+        amount:
+          type: number
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          description: Application status
+          enum:
+            - DRAFT
+            - PROCESSED
+        offer:
+          $ref: '#/components/schemas/Offer'
+
+    Offer:
+      type: object
+      nullable: true
+      properties:
+        monthlyPaymentAmount:
+          type: number
+        totalRepaymentAmount:
+          type: number
+        numberOfPayments:
+          type: integer
+        annualPercentageRate:
+          type: number
+        firstRepaymentDate:
+          type: string
