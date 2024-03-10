@@ -10,6 +10,7 @@ import lv.norkudev.financingaggregator.model.SubmitApplication;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -21,6 +22,7 @@ public class AggregationService {
 
     public Mono<List<ApplicationOffer>> submitApplication(SubmitApplication request) {
         return Flux.merge(fastBankService.submitApplication(request), solidBankService.submitApplication(request))
+                .sort(Comparator.comparing(ApplicationOffer::api))
                 .collectList();
     }
 
