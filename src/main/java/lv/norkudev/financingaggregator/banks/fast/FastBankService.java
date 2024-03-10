@@ -34,8 +34,8 @@ public class FastBankService extends BaseBankService<Application, ApplicationReq
                 .bodyToMono(Application.class)
                 .flatMap(application -> getLatestOffer(UUID.fromString(application.getId())))
                 .filter(application -> application.getOffer() != null)
-                .map(mapper::toApplicationOffer);
-
+                .map(mapper::toApplicationOffer)
+                .onErrorResume(throwable -> Mono.empty());
     }
 
     @Override
