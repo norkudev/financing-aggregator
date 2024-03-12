@@ -1,10 +1,7 @@
 package lv.norkudev.financingaggregator.service;
 
 import lv.norkudev.financingaggregator.banks.fast.FastBankService;
-import lv.norkudev.financingaggregator.banks.solid.ApplicationRequest;
 import lv.norkudev.financingaggregator.banks.solid.SolidBankService;
-import lv.norkudev.financingaggregator.model.ApplicationOffer;
-import lv.norkudev.financingaggregator.model.SubmitApplication;
 import lv.norkudev.financingaggregator.model.TestDataFactory;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -16,11 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.DockerImageName;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 
@@ -39,11 +36,19 @@ public class AggregationServiceTest {
     @Autowired
     private TestDataFactory testDataFactory;
 
+    static {
+        GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.2.4-alpine")).withExposedPorts(6379);
+        redis.start();
+        System.setProperty("spring.data.redis.host", redis.getHost());
+        System.setProperty("spring.data.redis.port", redis.getMappedPort(6379).toString());
+    }
+
+
     @BeforeEach
     void setUp() {
         solidbank = new MockWebServer();
         solidBankService.setSolidBankClient(WebClient.builder()
-                        .baseUrl(solidbank.url("/api/SolidBank").toString())
+                .baseUrl(solidbank.url("/api/SolidBank").toString())
                 .build());
         fastbank = new MockWebServer();
         fastBankService.setFastBankClient(WebClient.builder()
@@ -61,51 +66,67 @@ public class AggregationServiceTest {
     public void testBothOffers() {
         solidbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"1d00bf22-24a1-4ee1-907d-230b35397ba9\",\n" +
-                        "\"status\": \"DRAFT\",\n" +
-                        "\"offer\": null\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "1d00bf22-24a1-4ee1-907d-230b35397ba9",
+                        "status": "DRAFT",
+                        "offer": null
+                        }""")
         );
         solidbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"5fb16219-1d4f-400b-b316-058fd4bb79ba\",\n" +
-                        "\"status\": \"PROCESSED\",\n" +
-                        "\"offer\": {\n" +
-                        "\"monthlyPaymentAmount\": 883.33,\n" +
-                        "\"totalRepaymentAmount\": 5300.00,\n" +
-                        "\"numberOfPayments\": 6,\n" +
-                        "\"annualPercentageRate\": 10.11,\n" +
-                        "\"firstRepaymentDate\": \"2024-04-08\"\n" +
-                        "}\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "5fb16219-1d4f-400b-b316-058fd4bb79ba",
+                        "status": "PROCESSED",
+                        "offer": {
+                        "monthlyPaymentAmount": 883.33,
+                        "totalRepaymentAmount": 5300.00,
+                        "numberOfPayments": 6,
+                        "annualPercentageRate": 10.11,
+                        "firstRepaymentDate": "2024-04-08"
+                        }
+                        }""")
         );
 
         fastbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
-                        "\"status\": \"DRAFT\",\n" +
-                        "\"offer\": null\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "5743e234-0fa8-4976-8a03-fe5a2397de8f",
+                        "status": "DRAFT",
+                        "offer": null
+                        }""")
         );
         fastbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
-                        "\"status\": \"PROCESSED\",\n" +
-                        "\"offer\": {\n" +
-                        "\"monthlyPaymentAmount\": 1750.00,\n" +
-                        "\"totalRepaymentAmount\": 5250.00,\n" +
-                        "\"numberOfPayments\": 3,\n" +
-                        "\"annualPercentageRate\": 10.20,\n" +
-                        "\"firstRepaymentDate\": \"2024-04-08\"\n" +
-                        "}\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "5743e234-0fa8-4976-8a03-fe5a2397de8f",
+                        "status": "PROCESSED",
+                        "offer": {
+                        "monthlyPaymentAmount": 1750.00,
+                        "totalRepaymentAmount": 5250.00,
+                        "numberOfPayments": 3,
+                        "annualPercentageRate": 10.20,
+                        "firstRepaymentDate": "2024-04-08"
+                        }
+                        }""")
         );
 
-        StepVerifier.create(aggregationService.submitApplication(testDataFactory.createSubmitApplication()))
+        var submitApplication = testDataFactory.createSubmitApplication();
+
+        StepVerifier.create(aggregationService.submitApplication(submitApplication))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer(), testDataFactory.createExpectedSolidBankOffer()))
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(aggregationService.submitApplication(submitApplication))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer(), testDataFactory.createExpectedSolidBankOffer()))
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(aggregationService.getApplicationOffers(submitApplication.submitterUuid()))
                 .expectNext(List.of(testDataFactory.createExpectedFastBankOffer(), testDataFactory.createExpectedSolidBankOffer()))
                 .expectComplete()
                 .verify();
@@ -117,28 +138,42 @@ public class AggregationServiceTest {
 
         fastbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
-                        "\"status\": \"DRAFT\",\n" +
-                        "\"offer\": null\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "5743e234-0fa8-4976-8a03-fe5a2397de8f",
+                        "status": "DRAFT",
+                        "offer": null
+                        }""")
         );
         fastbank.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setBody("{\n" +
-                        "\"id\": \"5743e234-0fa8-4976-8a03-fe5a2397de8f\",\n" +
-                        "\"status\": \"PROCESSED\",\n" +
-                        "\"offer\": {\n" +
-                        "\"monthlyPaymentAmount\": 1750.00,\n" +
-                        "\"totalRepaymentAmount\": 5250.00,\n" +
-                        "\"numberOfPayments\": 3,\n" +
-                        "\"annualPercentageRate\": 10.20,\n" +
-                        "\"firstRepaymentDate\": \"2024-04-08\"\n" +
-                        "}\n" +
-                        "}")
+                .setBody("""
+                        {
+                        "id": "5743e234-0fa8-4976-8a03-fe5a2397de8f",
+                        "status": "PROCESSED",
+                        "offer": {
+                        "monthlyPaymentAmount": 1750.00,
+                        "totalRepaymentAmount": 5250.00,
+                        "numberOfPayments": 3,
+                        "annualPercentageRate": 10.20,
+                        "firstRepaymentDate": "2024-04-08"
+                        }
+                        }""")
         );
 
-        StepVerifier.create(aggregationService.submitApplication(testDataFactory.createSubmitApplication()))
+        var submitApplication = testDataFactory.createSubmitApplication();
+
+        StepVerifier.create(aggregationService.submitApplication(submitApplication))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer()))
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(aggregationService.submitApplication(submitApplication))
+                .expectNext(List.of(testDataFactory.createExpectedFastBankOffer()))
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(aggregationService.getApplicationOffers(submitApplication.submitterUuid()))
                 .expectNext(List.of(testDataFactory.createExpectedFastBankOffer()))
                 .expectComplete()
                 .verify();

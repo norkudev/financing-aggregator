@@ -5,12 +5,14 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.UUID;
 
 @Component
 public class TestDataFactory {
 
     public SubmitApplication createSubmitApplication() {
         return new SubmitApplication(
+                UUID.randomUUID(),
                 "+37122222222",
                 "test@test.com",
                 BigDecimal.valueOf(1000),

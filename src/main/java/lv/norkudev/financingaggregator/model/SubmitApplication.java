@@ -3,8 +3,10 @@ package lv.norkudev.financingaggregator.model;
 import lv.norkudev.financingaggregator.banks.solid.ApplicationRequest;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record SubmitApplication(
+        UUID submitterUuid,
         String phone,
         String email,
         BigDecimal monthlyIncome,
